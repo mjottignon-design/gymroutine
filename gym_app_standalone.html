@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>My Routine</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 600; }
+  button { font-family: inherit; cursor: pointer; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 0; }
+  .timer-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; color: #555; }
+
+  .tabs { display: flex; gap: 6px; padding: 12px 16px 0; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 7px 16px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; color: #666; white-space: nowrap; }
+  .tab.active { background: #E6F1FB; border-color: #378ADD; color: #185FA5; font-weight: 500; }
+
+  .content { padding: 12px 16px 100px; }
+
+  .exercise-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .exercise-card.complete { border-color: #9FE1CB; }
+  .card-header { display: flex; align-items: center; gap: 10px; padding: 13px 14px; }
+  .card-header .info { flex: 1; }
+  .ex-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .ex-meta { font-size: 12px; color: #888; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #E6F1FB; color: #185FA5; font-weight: 500; }
+  .badge.done { background: #EAF3DE; color: #3B6D11; }
+  .chevron { font-size: 10px; color: #bbb; margin-left: 4px; }
+
+  .card-body { padding: 0 14px 14px; }
+  .controls-row { display: flex; gap: 12px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+  .ctrl { display: flex; align-items: center; gap: 6px; }
+  .ctrl-label { font-size: 12px; color: #888; }
+  .ctrl-btn { width: 24px; height: 24px; border-radius: 5px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 14px; color: #333; display: flex; align-items: center; justify-content: center; }
+  .ctrl-val { font-size: 13px; font-weight: 600; min-width: 20px; text-align: center; }
+
+  .set-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f0f0f0; }
+  .set-label { font-size: 12px; color: #bbb; width: 22px; }
+  .set-weight-wrap { display: flex; align-items: center; gap: 5px; flex: 1; }
+  .set-weight { width: 64px; padding: 5px 8px; border-radius: 7px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 13px; color: #1a1a1a; font-family: inherit; }
+  .set-kg { font-size: 12px; color: #bbb; }
+  .set-check { width: 30px; height: 30px; border-radius: 7px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 15px; color: #bbb; display: flex; align-items: center; justify-content: center; }
+  .set-check.done { background: #EAF3DE; border-color: #9FE1CB; color: #3B6D11; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .act-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 12px; color: #666; }
+  .act-btn.danger { color: #c0392b; }
+
+  .add-btn { width: 100%; padding: 13px; border-radius: 10px; border: 1.5px dashed #ccc; background: transparent; color: #aaa; font-size: 14px; margin-top: 4px; }
+  .empty-msg { text-align: center; padding: 2rem 0; color: #bbb; font-size: 14px; }
+
+  /* Modal */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .modal { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .modal-title { font-weight: 600; font-size: 15px; }
+  .close-btn { background: none; border: none; font-size: 22px; color: #aaa; line-height: 1; padding: 0 2px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
+  .field input[type=text] { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 14px; font-family: inherit; color: #1a1a1a; }
+  .stepper-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .stepper-label { font-size: 13px; color: #555; }
+  .steppers { display: flex; align-items: center; gap: 8px; }
+  .step-btn { width: 30px; height: 30px; border-radius: 7px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .step-val { font-size: 14px; font-weight: 600; min-width: 28px; text-align: center; }
+  .save-btn { width: 100%; padding: 12px; border-radius: 9px; background: #378ADD; color: #fff; border: none; font-weight: 600; font-size: 14px; margin-top: 4px; }
+
+  /* Timer */
+  .timer-time { font-size: 36px; font-weight: 600; text-align: center; margin: 8px 0 4px; }
+  .presets { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .preset-btn { padding: 5px 12px; border-radius: 8px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 12px; color: #666; }
+  .preset-btn.active { background: #E6F1FB; border-color: #378ADD; color: #185FA5; }
+  .timer-actions { display: flex; gap: 8px; }
+  .timer-start { flex: 1; padding: 11px; border-radius: 9px; background: #378ADD; color: #fff; border: none; font-weight: 600; font-size: 14px; }
+  .timer-reset { padding: 11px 16px; border-radius: 9px; border: 1px solid #e0e0e0; background: #f5f5f0; font-size: 16px; color: #666; }
+  .done-text { text-align: center; font-size: 13px; color: #3B6D11; font-weight: 500; margin-bottom: 8px; }
+
+  /* Progress */
+  .prog-section { margin-bottom: 20px; }
+  .prog-title { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .prog-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+  .prog-ex { font-size: 13px; color: #333; }
+  .prog-weights { font-size: 12px; color: #888; }
+  .prog-trend { font-size: 12px; font-weight: 500; }
+  .up { color: #3B6D11; } .same { color: #888; } .down { color: #c0392b; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>My Routine</h1>
+  <div style="display:flex;gap:8px">
+    <button class="timer-btn" onclick="openTimer()">⏱ Timer</button>
+    <button class="timer-btn" onclick="openProgress()">📈 Progress</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div class="content" id="content"></div>
+
+<!-- Timer Modal -->
+<div class="overlay" id="timerModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Rest timer</span>
+      <button class="close-btn" onclick="closeTimer()">×</button>
+    </div>
+    <svg id="timerSvg" width="140" height="140" style="display:block;margin:0 auto 8px">
+      <circle cx="70" cy="70" r="60" fill="none" stroke="#f0f0f0" stroke-width="8"/>
+      <circle id="timerArc" cx="70" cy="70" r="60" fill="none" stroke="#378ADD" stroke-width="8"
+        stroke-dasharray="377 377" stroke-dashoffset="94" stroke-linecap="round" style="transition:stroke-dasharray 0.8s linear"/>
+    </svg>
+    <div class="timer-time" id="timerDisplay">1:30</div>
+    <div id="timerDone" class="done-text" style="display:none">Rest complete!</div>
+    <div class="presets" id="presets"></div>
+    <div class="timer-actions">
+      <button class="timer-start" id="timerStartBtn" onclick="toggleTimer()">Start</button>
+      <button class="timer-reset" onclick="resetTimer()">↺</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Exercise Modal -->
+<div class="overlay" id="addModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add exercise</span>
+      <button class="close-btn" onclick="closeAdd()">×</button>
+    </div>
+    <div class="field">
+      <label>Exercise name</label>
+      <input type="text" id="exName" placeholder="e.g. Bench Press" />
+    </div>
+    <div class="stepper-row"><span class="stepper-label">Sets</span><div class="steppers"><button class="step-btn" onclick="adj('sets',-1)">−</button><span class="step-val" id="setsVal">3</span><button class="step-btn" onclick="adj('sets',1)">+</button></div></div>
+    <div class="stepper-row"><span class="stepper-label">Reps</span><div class="steppers"><button class="step-btn" onclick="adj('reps',-1)">−</button><span class="step-val" id="repsVal">10</span><button class="step-btn" onclick="adj('reps',1)">+</button></div></div>
+    <div class="stepper-row"><span class="stepper-label">Weight (kg)</span><div class="steppers"><button class="step-btn" onclick="adj('weight',-2.5)">−</button><span class="step-val" id="weightVal">0</span><button class="step-btn" onclick="adj('weight',2.5)">+</button></div></div>
+    <button class="save-btn" onclick="saveExercise()">Add exercise</button>
+  </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="overlay" id="progressModal" style="display:none">
+  <div class="modal" style="max-height:80vh;overflow-y:auto">
+    <div class="modal-header">
+      <span class="modal-title">Progress</span>
+      <button class="close-btn" onclick="closeProgress()">×</button>
+    </div>
+    <div id="progressContent"></div>
+  </div>
+</div>
+
+<script>
+const GROUPS = ["Push","Pull","Legs","Full Body"];
+const PRESETS = [30,60,90,120,180];
+let activeGroup = "Push";
+let timerInterval = null, timerRunning = false;
+let timerDuration = 90, timerRemaining = 90;
+let addVals = {sets:3, reps:10, weight:0};
+
+// --- Data ---
+function defaultData() {
+  return {
+    Push:[
+      {id:1,name:"Bench Press",sets:4,reps:8,weight:60},
+      {id:2,name:"Overhead Press",sets:3,reps:10,weight:40},
+      {id:3,name:"Tricep Dips",sets:3,reps:12,weight:0}
+    ],
+    Pull:[
+      {id:4,name:"Pull-ups",sets:4,reps:8,weight:0},
+      {id:5,name:"Barbell Row",sets:3,reps:10,weight:60},
+      {id:6,name:"Bicep Curls",sets:3,reps:12,weight:15}
+    ],
+    Legs:[
+      {id:7,name:"Squat",sets:4,reps:8,weight:80},
+      {id:8,name:"Romanian Deadlift",sets:3,reps:10,weight:70},
+      {id:9,name:"Leg Press",sets:3,reps:12,weight:100}
+    ],
+    "Full Body":[]
+  };
+}
+
+function load() {
+  try { return JSON.parse(localStorage.getItem("gymData")) || defaultData(); } catch { return defaultData(); }
+}
+function save(d) { localStorage.setItem("gymData",JSON.stringify(d)); }
+
+// set state: {done, weight} per set per exercise — keyed by ex id
+function loadSets() {
+  try { return JSON.parse(localStorage.getItem("gymSets")) || {}; } catch { return {}; }
+}
+function saveSets(s) { localStorage.setItem("gymSets",JSON.stringify(s)); }
+
+// progress history: {date, exId, sets:[{weight}]}
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem("gymHistory")) || []; } catch { return []; }
+}
+function saveHistory(h) { localStorage.setItem("gymHistory",JSON.stringify(h)); }
+
+let data = load();
+let sets = loadSets();
+let nextId = Math.max(20, ...GROUPS.flatMap(g => (data[g]||[]).map(e => e.id))) + 1;
+
+// --- Render ---
+function render() {
+  renderTabs();
+  renderContent();
+}
+
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = GROUPS.map(g =>
+    `<button class="tab${g===activeGroup?" active":""}" onclick="setGroup('${g}')">${g}</button>`
+  ).join("");
+}
+
+function renderContent() {
+  const exs = data[activeGroup] || [];
+  let html = "";
+  if (!exs.length) {
+    html = `<div class="empty-msg">No exercises yet — add one below</div>`;
+  } else {
+    exs.forEach(ex => { html += renderCard(ex); });
+  }
+  html += `<button class="add-btn" onclick="openAdd()">+ Add exercise</button>`;
+  document.getElementById("content").innerHTML = html;
+}
+
+function renderCard(ex) {
+  const sd = getSets(ex);
+  const done = sd.filter(s=>s.done).length;
+  const all = done === ex.sets;
+  const expanded = (window._expanded||{})[ex.id];
+  let badge = done > 0 ? `<span class="badge${all?" done":""}">${done}/${ex.sets}</span>` : "";
+  let body = "";
+  if (expanded) {
+    body = `<div class="card-body">
+      <div class="controls-row">
+        <div class="ctrl"><span class="ctrl-label">Reps</span>
+          <button class="ctrl-btn" onclick="adjEx(${ex.id},'reps',-1)">−</button>
+          <span class="ctrl-val">${ex.reps}</span>
+          <button class="ctrl-btn" onclick="adjEx(${ex.id},'reps',1)">+</button>
+        </div>
+        <div class="ctrl"><span class="ctrl-label">Sets</span>
+          <button class="ctrl-btn" onclick="adjEx(${ex.id},'sets',-1)">−</button>
+          <span class="ctrl-val">${ex.sets}</span>
+          <button class="ctrl-btn" onclick="adjEx(${ex.id},'sets',1)">+</button>
+        </div>
+      </div>
+      ${sd.map((s,i) => `
+        <div class="set-row">
+          <span class="set-label">S${i+1}</span>
+          <div class="set-weight-wrap">
+            <input class="set-weight" type="number" value="${s.weight}" min="0" step="2.5"
+              onchange="setWeight(${ex.id},${i},this.value)" />
+            <span class="set-kg">kg</span>
+          </div>
+          <button class="set-check${s.done?" done":""}" onclick="toggleSet(${ex.id},${i})">${s.done?"✓":"○"}</button>
+        </div>`).join("")}
+      <div class="card-actions">
+        <button class="act-btn" onclick="openTimer()">⏱ Rest timer</button>
+        <button class="act-btn danger" onclick="deleteEx(${ex.id})">Remove</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="exercise-card${all?" complete":""}" id="card-${ex.id}">
+    <div class="card-header" onclick="toggleExpand(${ex.id})">
+      <div class="info">
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-meta">${ex.sets} sets × ${ex.reps} reps · ${ex.weight>0?ex.weight+"kg":"bodyweight"}</div>
+      </div>
+      ${badge}
+      <span class="chevron">${expanded?"▲":"▼"}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function getSets(ex) {
+  if (!sets[ex.id]) {
+    sets[ex.id] = Array.from({length:ex.sets},()=>({done:false,weight:ex.weight}));
+  }
+  while (sets[ex.id].length < ex.sets) sets[ex.id].push({done:false,weight:ex.weight});
+  sets[ex.id] = sets[ex.id].slice(0,ex.sets);
+  return sets[ex.id];
+}
+
+// --- Actions ---
+function setGroup(g) { activeGroup = g; render(); }
+
+function toggleExpand(id) {
+  window._expanded = window._expanded || {};
+  window._expanded[id] = !window._expanded[id];
+  renderContent();
+}
+
+function adjEx(id, field, delta) {
+  const ex = findEx(id);
+  if (!ex) return;
+  const min = field==="sets"?1:field==="reps"?1:0;
+  const max = field==="sets"?10:field==="reps"?50:500;
+  ex[field] = Math.min(max, Math.max(min, (ex[field]||0)+delta));
+  save(data); renderContent();
+}
+
+function toggleSet(exId, idx) {
+  const sd = sets[exId];
+  sd[idx].done = !sd[idx].done;
+  saveSets(sets);
+  // log to history
+  if (sd[idx].done) {
+    logHistory(exId, idx, sd[idx].weight);
+    openTimer();
+  }
+  renderContent();
+}
+
+function setWeight(exId, idx, val) {
+  sets[exId][idx].weight = parseFloat(val)||0;
+  saveSets(sets);
+}
+
+function logHistory(exId, setIdx, weight) {
+  const h = loadHistory();
+  const today = new Date().toISOString().slice(0,10);
+  h.push({date:today, exId, setIdx, weight});
+  saveHistory(h);
+}
+
+function deleteEx(id) {
+  data[activeGroup] = data[activeGroup].filter(e=>e.id!==id);
+  delete sets[id];
+  save(data); saveSets(sets); renderContent();
+}
+
+function findEx(id) {
+  for (const g of GROUPS) { const e = (data[g]||[]).find(e=>e.id===id); if (e) return e; }
+}
+
+// --- Add Modal ---
+function openAdd() {
+  addVals = {sets:3,reps:10,weight:0};
+  document.getElementById("exName").value = "";
+  document.getElementById("setsVal").textContent = 3;
+  document.getElementById("repsVal").textContent = 10;
+  document.getElementById("weightVal").textContent = 0;
+  document.getElementById("addModal").style.display = "flex";
+  setTimeout(()=>document.getElementById("exName").focus(),100);
+}
+function closeAdd() { document.getElementById("addModal").style.display="none"; }
+
+function adj(field, delta) {
+  const min = field==="weight"?0:1;
+  const max = field==="sets"?10:field==="reps"?50:300;
+  const step = field==="weight"?2.5:1;
+  addVals[field] = Math.min(max, Math.max(min, addVals[field]+delta));
+  document.getElementById(field+"Val").textContent = addVals[field];
+}
+
+function saveExercise() {
+  const name = document.getElementById("exName").value.trim();
+  if (!name) { document.getElementById("exName").focus(); return; }
+  const ex = {id:nextId++, name, sets:addVals.sets, reps:addVals.reps, weight:addVals.weight};
+  data[activeGroup].push(ex);
+  save(data); closeAdd(); renderContent();
+}
+
+// --- Timer ---
+function openTimer() { document.getElementById("timerModal").style.display="flex"; renderPresets(); updateTimerDisplay(); }
+function closeTimer() { document.getElementById("timerModal").style.display="none"; }
+
+function renderPresets() {
+  document.getElementById("presets").innerHTML = PRESETS.map(s =>
+    `<button class="preset-btn${timerDuration===s?" active":""}" onclick="setPreset(${s})">${s<60?s+"s":s/60+"m"}</button>`
+  ).join("");
+}
+
+function setPreset(s) {
+  timerDuration = s; timerRemaining = s;
+  stopTimer(); updateTimerDisplay(); renderPresets();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerRemaining/60), s = timerRemaining%60;
+  document.getElementById("timerDisplay").textContent = `${m}:${String(s).padStart(2,"0")}`;
+  const circ = 2*Math.PI*60, pct = timerRemaining/timerDuration;
+  const dash = circ*pct;
+  const arc = document.getElementById("timerArc");
+  arc.setAttribute("stroke-dasharray",`${dash} ${circ}`);
+  arc.setAttribute("stroke", timerRemaining===0?"#639922":"#378ADD");
+  document.getElementById("timerDone").style.display = timerRemaining===0?"block":"none";
+  document.getElementById("timerStartBtn").textContent = timerRunning?"Pause": timerRemaining===0?"Restart":"Start";
+}
+
+function toggleTimer() {
+  if (timerRemaining===0) { timerRemaining=timerDuration; }
+  if (timerRunning) stopTimer(); else startTimer();
+}
+
+function startTimer() {
+  timerRunning = true;
+  document.getElementById("timerStartBtn").textContent = "Pause";
+  timerInterval = setInterval(()=>{
+    timerRemaining--;
+    updateTimerDisplay();
+    if (timerRemaining<=0) { stopTimer(); }
+  },1000);
+}
+
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+  updateTimerDisplay();
+}
+
+function resetTimer() { stopTimer(); timerRemaining=timerDuration; updateTimerDisplay(); }
+
+// --- Progress ---
+function openProgress() {
+  const h = loadHistory();
+  const content = document.getElementById("progressContent");
+  if (!h.length) { content.innerHTML = `<p style="color:#aaa;text-align:center;padding:1rem 0">No workout history yet.<br>Complete some sets to track progress!</p>`; }
+  else {
+    // group by exercise
+    const byEx = {};
+    h.forEach(entry => {
+      if (!byEx[entry.exId]) byEx[entry.exId] = [];
+      byEx[entry.exId].push(entry);
+    });
+    let html = "";
+    GROUPS.forEach(g => {
+      const groupExs = (data[g]||[]).filter(e=>byEx[e.id]);
+      if (!groupExs.length) return;
+      html += `<div class="prog-section"><div class="prog-title">${g}</div>`;
+      groupExs.forEach(ex => {
+        const entries = byEx[ex.id];
+        const byDate = {};
+        entries.forEach(e => { if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e.weight); });
+        const dates = Object.keys(byDate).sort();
+        const lastTwo = dates.slice(-2);
+        const latest = Math.max(...(byDate[lastTwo[lastTwo.length-1]]||[0]));
+        let trend = "", trendClass="same";
+        if (lastTwo.length>=2) {
+          const prev = Math.max(...(byDate[lastTwo[0]]||[0]));
+          if (latest>prev) { trend=`↑ ${latest-prev}kg`; trendClass="up"; }
+          else if (latest<prev) { trend=`↓ ${prev-latest}kg`; trendClass="down"; }
+          else trend="→ same";
+        }
+        html += `<div class="prog-row">
+          <span class="prog-ex">${ex.name}</span>
+          <div style="text-align:right">
+            <div class="prog-weights">${latest>0?latest+"kg":"bodyweight"}</div>
+            ${trend?`<div class="prog-trend ${trendClass}">${trend}</div>`:""}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    content.innerHTML = html || `<p style="color:#aaa;text-align:center">No data yet</p>`;
+  }
+  document.getElementById("progressModal").style.display="flex";
+}
+function closeProgress() { document.getElementById("progressModal").style.display="none"; }
+
+// --- Init ---
+window._expanded = {};
+render();
+</script>
+</body>
+</html>
